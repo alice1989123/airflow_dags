@@ -18,19 +18,10 @@ from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperato
 
 
 
-default_args = {
-    "owner": "alice",
-    "start_date": datetime(2024, 1, 1),
-    "retries": 1,
-    "retry_delay": timedelta(minutes=5),
-}
-
-# Mount the file to /run/secrets/.env
-secret_file_mount = Secret(
-    deploy_type="volume",
-    deploy_target="/run/secrets/.env",
-    secret="crypto-env-file",
-    key="env_file"   # <- matches the key name from --from-file
+env_secret = Secret(
+    deploy_type='env',          # inject as environment variables
+    deploy_target=None,         # match keys as is
+    secret='crypto-env'         # name of the secret you created
 )
 
 with DAG(
@@ -47,10 +38,8 @@ with DAG(
         name="crypto-scraper",
         image="registry-docker-registry.registry.svc.cluster.local:5000/crypto_news_scrapper:latest",
         cmds=["python", "main.py"],
-        secrets=[secret_file_mount],
+        secrets=[env_secret],
         is_delete_operator_pod=True,
         image_pull_secrets=[{"name": "docker-credentials"}],  # optional
-        env_vars={
-            "ENV_FILE": "/run/secrets/.env"
-        },
+       
     )
