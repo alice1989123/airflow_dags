@@ -2,8 +2,6 @@ from airflow import DAG
 import types
 
 from airflow.providers.cncf.kubernetes.secret import Secret
-from airflow.kubernetes.volume import Volume
-from airflow.kubernetes.volume_mount import VolumeMount
 from datetime import datetime, timedelta
 import sys
 #from dotenv import dotenv_values
@@ -23,6 +21,14 @@ env_secret = Secret(
     deploy_target=None,         # match keys as is
     secret='crypto-env'         # name of the secret you created
 )
+
+
+default_args = {
+    "owner": "alice",
+    "start_date": datetime(2024, 1, 1),
+    "retries": 1,
+    "retry_delay": timedelta(minutes=5),
+}
 
 with DAG(
     dag_id="crypto_news_scraper_k8s_file",
