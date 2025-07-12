@@ -43,7 +43,6 @@ with DAG(
         namespace="production",
         name="crypto-scraper",
         image="registry-docker-registry.registry.svc.cluster.local:5000/crypto_news_scrapper:latest",
-        cmds=["python", "main.py"],
         secrets=[env_secret],
         is_delete_operator_pod=True,
        
