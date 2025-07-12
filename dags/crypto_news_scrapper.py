@@ -2,8 +2,8 @@ from airflow import DAG
 import types
 
 from airflow.providers.cncf.kubernetes.secret import Secret
-from airflow.providers.cncf.kubernetes.volume import Volume
-from airflow.providers.cncf.kubernetes.volume_mount import VolumeMount
+from airflow.kubernetes.volume import Volume
+from airflow.kubernetes.volume_mount import VolumeMount
 from datetime import datetime, timedelta
 import sys
 #from dotenv import dotenv_values
