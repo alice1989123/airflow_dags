@@ -46,5 +46,6 @@ with DAG(
         secrets=[env_secret],
         is_delete_operator_pod=True,
         execution_timeout=timedelta(minutes=5),
+        get_logs=True,
        
     )
