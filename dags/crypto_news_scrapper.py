@@ -46,6 +46,5 @@ with DAG(
         cmds=["python", "main.py"],
         secrets=[env_secret],
         is_delete_operator_pod=True,
-        image_pull_secrets=[{"name": "docker-credentials"}],  # optional
        
     )
