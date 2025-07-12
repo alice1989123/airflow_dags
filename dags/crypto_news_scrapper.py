@@ -19,7 +19,7 @@ from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperato
 env_secret = Secret(
     deploy_type='env',          # inject as environment variables
     deploy_target=None,         # match keys as is
-    secret='crypto-env'         # name of the secret you created
+    secret='crypto-env-file'         # name of the secret you created
 )
 
 
