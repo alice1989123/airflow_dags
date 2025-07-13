@@ -48,6 +48,7 @@ with DAG(
         execution_timeout=timedelta(minutes=5),
         startup_timeout_seconds=600,
         get_logs=True,
+        cmds=["sh", "-c"],
         arguments=["Xvfb :99 -screen 0 1024x768x24 & export DISPLAY=:99 && python scraper.py"],
        
     )
