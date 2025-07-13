@@ -50,4 +50,5 @@ with DAG(
     get_logs=True,
     cmds=["/bin/bash", "-c"],
     arguments=["start_scraper.sh"],
+    working_dir="/app"
 )
