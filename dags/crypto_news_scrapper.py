@@ -48,6 +48,6 @@ with DAG(
         execution_timeout=timedelta(minutes=5),
         startup_timeout_seconds=600,
         get_logs=True,
-        command= ["xvfb-run", "-a", "python", "scraper.py"]
+        cmds= ["xvfb-run", "-a", "python", "scraper.py"]
        
     )
