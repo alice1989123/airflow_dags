@@ -49,6 +49,6 @@ with DAG(
     startup_timeout_seconds=900,
     get_logs=True,
     cmds=["/bin/bash", "-c"],
-    arguments=["start_scraper.sh"],
+    arguments=["cd /app && ./start_scraper.sh"],
     working_dir="/app"
 )
