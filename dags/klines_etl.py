@@ -48,6 +48,6 @@ with DAG(
     execution_timeout=timedelta(minutes=15),
     startup_timeout_seconds=900,
     get_logs=True,
-    cmds=["python"],
-    arguments=["-m" ,"src.backfill"],
+    #cmds=["python"],
+    #arguments=["-m" ,"src.backfill"],
 )
