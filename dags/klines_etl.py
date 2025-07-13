@@ -31,7 +31,7 @@ default_args = {
 }
 
 with DAG(
-    dag_id="crypto_news_scraper_k8s_file",
+    dag_id="klines_etl_k8s_file",
     default_args=default_args,
     schedule="@hourly",
     catchup=False,
@@ -39,9 +39,9 @@ with DAG(
 ) as dag:
 
     run_scraper = KubernetesPodOperator(
-    task_id="run_scraper_pod",
+    task_id="run_klines_etl_pod",
     namespace="production",
-    name="crypto-scraper",
+    name="klines_etl",
     image="registry-docker-registry.registry.svc.cluster.local:5000/klines-etl:latest",
     secrets=[env_secret],
     is_delete_operator_pod=True,
