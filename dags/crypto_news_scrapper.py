@@ -39,15 +39,15 @@ with DAG(
 ) as dag:
 
     run_scraper = KubernetesPodOperator(
-        task_id="run_scraper_pod",
-        namespace="production",
-        name="crypto-scraper",
-        image="registry-docker-registry.registry.svc.cluster.local:5000/crypto_news_scrapper:latest",
-        secrets=[env_secret],
-        is_delete_operator_pod=True,
-        execution_timeout=timedelta(minutes=5),
-        startup_timeout_seconds=600,
-        get_logs=True,
-        cmds= ["xvfb-run", "-a", "python3", "scraper.py"]
-       
-    )
+    task_id="run_scraper_pod",
+    namespace="production",
+    name="crypto-scraper",
+    image="registry-docker-registry.registry.svc.cluster.local:5000/crypto_news_scrapper:latest",
+    secrets=[env_secret],
+    is_delete_operator_pod=True,
+    execution_timeout=timedelta(minutes=5),
+    startup_timeout_seconds=600,
+    get_logs=True,
+    cmds=["/bin/bash", "-c"],
+    arguments=["xvfb-run -a python3 scraper.py"],
+)
