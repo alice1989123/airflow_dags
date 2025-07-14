@@ -55,6 +55,6 @@ with DAG(
     execution_timeout=timedelta(minutes=15),
     startup_timeout_seconds=900,
     get_logs=True,
-    cmds=["/bin/bash", "-c"],
-    arguments=["cd /app && ./runner.sh"],
+    cmds=["python3.11"],
+    arguments=["generate_predictions.py" , "--model_name=LSTMModel"],
 )
