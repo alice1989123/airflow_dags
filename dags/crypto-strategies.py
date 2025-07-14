@@ -59,6 +59,9 @@ with DAG(
     is_delete_operator_pod=True,
     execution_timeout=timedelta(minutes=15),
     startup_timeout_seconds=900,
+    env_vars={
+        "PYTHONPATH": "/app"
+    },
     get_logs=True,
     cmds=["/bin/bash", "-c"],
     arguments=["cd /app && ./runner.sh"],
