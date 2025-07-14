@@ -28,6 +28,12 @@ env_secret_aws = Secret(
     secret='aws-credentials-dynamo'         
 )
 
+env_telegram = Secret(
+    deploy_type='env',          # inject as environment variables
+    deploy_target=None,         # match keys as is
+    secret='telegram'         
+)
+
 
 default_args = {
     "owner": "alice",
@@ -49,7 +55,7 @@ with DAG(
     namespace="production",
     name="crypto-strategies",
     image="registry-docker-registry.registry.svc.cluster.local:5000/crypto-strategies:latest",
-    secrets=[env_secret , env_secret_aws],
+    secrets=[env_secret , env_secret_aws , env_telegram],
     is_delete_operator_pod=True,
     execution_timeout=timedelta(minutes=15),
     startup_timeout_seconds=900,
