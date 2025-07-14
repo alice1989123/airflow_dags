@@ -25,7 +25,7 @@ env_secret = Secret(
 env_secret_aws = Secret(
     deploy_type='env',          # inject as environment variables
     deploy_target=None,         # match keys as is
-    secret='aws-creds-secret'         
+    secret='aws-credentials-dynamo'         
 )
 
 
