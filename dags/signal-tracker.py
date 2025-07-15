@@ -61,5 +61,5 @@ with DAG(
     startup_timeout_seconds=900,
     get_logs=True,
     cmds=["python"],
-    arguments=["cd /app && ./runner.sh"],
+    arguments=["main.py"],
 )
