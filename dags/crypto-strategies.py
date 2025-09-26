@@ -45,7 +45,7 @@ default_args = {
 with DAG(
     dag_id="crypto-strategies_k8s_file",
     default_args=default_args,
-    schedule="@hourly",
+    schedule="5 * * * *",
     catchup=False,
     tags=["crypto", "k8s" ,"gatsbyt"],
 ) as dag:
