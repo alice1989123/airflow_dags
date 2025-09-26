@@ -62,5 +62,5 @@ with DAG(
     startup_timeout_seconds=900,
     get_logs=True,
     cmds=["python3.11"],
-    arguments=["generate_predictions.py" , "--model_name=LSTMModel"],
+    arguments=["generate_predictions.py" ],
 )
