@@ -59,7 +59,6 @@ with DAG(
         external_dag_id="klines_etl_k8s_file",
         external_task_id=None,          # wait for whole DAG A success
         allowed_states=["success"],
-        failed_states=["failed","skipped","upstream_failed"],
         mode="reschedule",
         poke_interval=60,               # seconds
         timeout=90*60,                  # 90 min safety
