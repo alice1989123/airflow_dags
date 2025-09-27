@@ -28,7 +28,7 @@ env_secret_aws = Secret(
     secret='aws-credentials-dynamo'         
 )
 
-env_secret = Secret(
+env_secret_mslflow = Secret(
     deploy_type='env',          # inject as environment variables
     deploy_target=None,         # match keys as is
     secret='mlflow-credentials'         # name of the secret you created

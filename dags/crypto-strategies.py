@@ -45,7 +45,7 @@ default_args = {
 with DAG(
     dag_id="crypto-strategies_k8s_file",
     default_args=default_args,
-    schedule="5 * * * *",
+    schedule="5 * * * *", #TODO: fix to depend on btc_forecast and klines
     catchup=False,
     tags=["crypto", "k8s" ,"gatsbyt"],
 ) as dag:
