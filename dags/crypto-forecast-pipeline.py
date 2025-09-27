@@ -2,9 +2,11 @@ from airflow import DAG
 from airflow.utils.task_group import TaskGroup
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 from airflow.providers.cncf.kubernetes.secret import Secret
+from airflow.decorators import task                     # NEW
+from airflow.models import Variable 
 import types
 import sys
-
+import json, re 
 # ---- keep this shim (KPO + http bug workaround) ----
 if 'http' in sys.modules:
     if not isinstance(sys.modules['http'], types.ModuleType) or not hasattr(sys.modules['http'], 'HTTPStatus'):
@@ -15,12 +17,53 @@ from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperato
 
 from datetime import datetime, timedelta
 
-COINS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+# -------- secrets (K8s Secrets) --------
 
 db_secret = Secret(deploy_type='env', deploy_target=None, secret='db-creds')
 env_secret_aws = Secret(deploy_type='env', deploy_target=None, secret='aws-credentials-dynamo')
 env_secret_mlflow = Secret(deploy_type='env', deploy_target=None, secret='mlflow-credentials')
 env_telegram = Secret(deploy_type='env', deploy_target=None, secret='telegram')
+
+
+# --------  dynamic coin resolution + arg builders --------
+@task
+def resolve_coins(param_coins=None) -> list[str]:
+    """Prefer DAG param `coins` (array or CSV/JSON string), else Variable `CRYPTO_COINS` (CSV or JSON)."""
+    def _parse(val):
+        if val is None:
+            return []
+        if isinstance(val, list):
+            seq = val
+        elif isinstance(val, str):
+            s = val.strip()
+            if not s:
+                return []
+            seq = json.loads(s) if s.startswith('[') else re.split(r'[,\s]+', s)
+        else:
+            return []
+        out, seen = [], set()
+        for x in seq:
+            c = str(x).strip().upper()
+            if c and c not in seen:
+                seen.add(c); out.append(c)
+        return out
+
+    coins = _parse(param_coins)
+    if not coins:
+        coins = _parse(Variable.get("CRYPTO_COINS", default_var=""))
+    if not coins:
+        # last-resort default (optional: delete if you prefer to error)
+        coins = ["BTCUSDT","ETHUSDT","SOLUSDT"]
+    return coins
+
+@task
+def to_forecast_args(coins: list[str]) -> list[list[str]]:
+    return [["generate_predictions.py", "--symbol", c] for c in coins]
+
+@task
+def to_strategy_args(coins: list[str]) -> list[list[str]]:
+    return [[f"cd /app && ./runner.sh --symbol {c}"] for c in coins]
+# -------------------------------------------------------------
 
 with DAG(
     "crypto_hourly",
@@ -31,6 +74,11 @@ with DAG(
     default_args={"retries": 1, "retry_delay": timedelta(minutes=5)},
     tags=["crypto", "k8s", "gatsbyt"],
 ) as dag:
+    #resolve coins from param/variable, then build mapped arguments
+    coins = resolve_coins(dag.params.get("coins"))
+    forecast_args = to_forecast_args(coins)
+    strategy_args = to_strategy_args(coins)
+    
 
     # A) ETL
     with TaskGroup("etl") as etl:
@@ -63,7 +111,7 @@ with DAG(
                 get_logs=True,
                 cmds=["python3.11"],
             )
-            .expand(arguments=[["generate_predictions.py", "--symbol", c] for c in COINS])
+            .expand(arguments=forecast_args)
         )
 
     # C) Strategies (mapped per coin)
@@ -82,7 +130,7 @@ with DAG(
                 get_logs=True,
                 cmds=["/bin/bash", "-c"],  # needed for inline script
             )
-            .expand(arguments=[["cd /app && ./runner.sh --symbol " + c] for c in COINS])
+            .expand(arguments=strategy_args)
         )
 
     # D) Tracker (single task; map later if you split tracking per-coin)
