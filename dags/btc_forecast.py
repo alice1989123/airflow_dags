@@ -43,24 +43,45 @@ default_args = {
 }
 
 
+from airflow.sensors.external_task import ExternalTaskSensor
+
 with DAG(
     dag_id="btc_forecast_k8s_file",
     default_args=default_args,
     schedule="@hourly",
     catchup=False,
-    tags=["crypto", "k8s" ,"gatsbyt"],
+    max_active_runs=1,
+    tags=["crypto","k8s","gatsbyt"],
 ) as dag:
 
-    run_scraper = KubernetesPodOperator(
-    task_id="run_btc_forecast_pod",
-    namespace="production",
-    name="btc_forecast",
-    image="registry-docker-registry.registry.svc.cluster.local:5000/btc_forecast:latest",
-    secrets=[env_secret,env_secret_aws,env_secret_mlflow ],
-    is_delete_operator_pod=True,
-    execution_timeout=timedelta(minutes=15),
-    startup_timeout_seconds=900,
-    get_logs=True,
-    cmds=["python3.11"],
-    arguments=["generate_predictions.py" ],
-)
+    wait_klines = ExternalTaskSensor(
+        task_id="wait_for_klines",
+        external_dag_id="klines_etl_k8s_file",
+        external_task_id=None,          # wait for whole DAG A success
+        allowed_states=["success"],
+        failed_states=["failed","skipped","upstream_failed"],
+        mode="reschedule",
+        poke_interval=60,               # seconds
+        timeout=90*60,                  # 90 min safety
+    )
+
+    run_forecast = KubernetesPodOperator(
+        task_id="run_btc_forecast_pod",
+        namespace="production",
+        name="btc_forecast",
+        image="registry-docker-registry.registry.svc.cluster.local:5000/btc_forecast:latest",
+        secrets=[env_secret, env_secret_aws, env_secret_mlflow],
+        is_delete_operator_pod=True,
+        execution_timeout=timedelta(minutes=15),
+        startup_timeout_seconds=900,
+        get_logs=True,
+        cmds=["python3.11"],
+        arguments=["generate_predictions.py"],
+        env_vars={
+            # handy if your code wants the hour it’s running for
+            "LOGICAL_DATE": "{{ ds }}",
+            "TS": "{{ ts }}",
+        },
+    )
+
+    wait_klines >> run_forecast
