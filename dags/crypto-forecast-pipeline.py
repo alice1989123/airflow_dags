@@ -4,6 +4,7 @@ from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperato
 from airflow.providers.cncf.kubernetes.secret import Secret
 from airflow.decorators import task                     # NEW
 from airflow.models import Variable 
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 import types
 import sys
 import json, re 
@@ -26,36 +27,50 @@ env_telegram = Secret(deploy_type='env', deploy_target=None, secret='telegram')
 
 
 # --------  dynamic coin resolution + arg builders --------
+def _parse_coins(val):
+    if val is None:
+        return []
+    if isinstance(val, list):
+        seq = val
+    elif isinstance(val, str):
+        s = val.strip()
+        if not s:
+            return []
+        seq = json.loads(s) if s.startswith('[') else re.split(r'[,\s]+', s)
+    else:
+        return []
+    out, seen = [], set()
+    for x in seq:
+        c = str(x).strip().upper()
+        if c and c not in seen:
+            seen.add(c); out.append(c)
+    return out
 @task
 def resolve_coins(param_coins=None) -> list[str]:
-    """Prefer DAG param `coins` (array or CSV/JSON string), else Variable `CRYPTO_COINS` (CSV or JSON)."""
-    def _parse(val):
-        if val is None:
-            return []
-        if isinstance(val, list):
-            seq = val
-        elif isinstance(val, str):
-            s = val.strip()
-            if not s:
-                return []
-            seq = json.loads(s) if s.startswith('[') else re.split(r'[,\s]+', s)
-        else:
-            return []
-        out, seen = [], set()
-        for x in seq:
-            c = str(x).strip().upper()
-            if c and c not in seen:
-                seen.add(c); out.append(c)
-        return out
+    """
+    Priority:
+      1) DAG param `coins` (list or CSV/JSON string)
+      2) Airflow Variable CRYPTO_COINS (CSV or JSON)
+      3) Postgres (coin_catalog.tracked = true) via conn_id 'crypto_db'
+    """
+    coins = _parse_coins(param_coins)
+    if not coins:
+        coins = _parse_coins(Variable.get("CRYPTO_COINS", default_var=""))
 
-    coins = _parse(param_coins)
     if not coins:
-        coins = _parse(Variable.get("CRYPTO_COINS", default_var=""))
+        hook = PostgresHook(postgres_conn_id="crypto_db")
+        rows = hook.get_records("SELECT symbol FROM coin_catalog WHERE tracked = true")
+        coins = [r[0].strip().upper() for r in rows if r and r[0]]
+
+    # final de-dup & sanity
+    coins = [c for i, c in enumerate(coins) if c and c not in coins[:i]]
+
     if not coins:
-        # last-resort default (optional: delete if you prefer to error)
-        coins = ["BTCUSDT","ETHUSDT","SOLUSDT"]
+        # you can default instead of skipping if you prefer:
+        # return ["BTCUSDT","ETHUSDT","SOLUSDT"]
+        raise AirflowSkipException("No coins resolved from params/Variable/DB")
+
     return coins
-
 @task
 def to_forecast_args(coins: list[str]) -> list[list[str]]:
     return [["generate_predictions.py", "--symbol", c] for c in coins]
