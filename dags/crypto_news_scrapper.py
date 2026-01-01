@@ -57,7 +57,7 @@ with DAG(
     task_id="run_scraper_pod",
     namespace="production",
     name="crypto-scraper",
-    image="registry-docker-registry.registry.svc.cluster.local:5000/crypto_news_scrapper:latest",
+    image="registry-docker-registry.registry.svc.cluster.local:5000/crypto_news_scrapper_v2:latest",
     secrets=[env_secret],
     is_delete_operator_pod=True,
     execution_timeout=timedelta(minutes=50),
