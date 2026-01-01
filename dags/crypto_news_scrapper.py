@@ -1,4 +1,6 @@
 from airflow import DAG
+from kubernetes.client import models as k8s
+
 import types
 
 from airflow.providers.cncf.kubernetes.secret import Secret
@@ -15,6 +17,19 @@ from http import HTTPStatus  # Importación correcta del estándar
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 
 
+gatsbyt_volume = k8s.V1Volume(
+    name="gatsbyt-data",
+    persistent_volume_claim=k8s.V1PersistentVolumeClaimVolumeSource(
+        claim_name="gatsbyt-nfs-pvc",
+        read_only=False,
+    ),
+)
+
+gatsbyt_mount = k8s.V1VolumeMount(
+    name="gatsbyt-data",
+    mount_path="/mnt/gatsbyt",
+    read_only=False,
+)
 
 env_secret = Secret(
     deploy_type='env',          # inject as environment variables
@@ -50,4 +65,6 @@ with DAG(
     get_logs=True,
     cmds=["/bin/bash", "-c"],
     arguments=["cd /app && ./start_scraper.sh"],
+    volumes=[gatsbyt_volume],
+    volume_mounts=[gatsbyt_mount],
 )
