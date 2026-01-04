@@ -87,7 +87,6 @@ with DAG(
     max_active_runs=1,
     default_args={"retries": 1, "retry_delay": timedelta(minutes=5)},
     tags=["crypto", "k8s", "gatsbyt"],
-    timezone="UTC",
     params={"coins": None},
 ) as dag:
     coins = resolve_coins(dag.params.get("coins", None))
