@@ -1,6 +1,5 @@
 from airflow import DAG
 from airflow.utils.task_group import TaskGroup
-from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 from airflow.providers.cncf.kubernetes.secret import Secret
 from airflow.decorators import task                     # NEW
 from airflow.models import Variable 
@@ -15,7 +14,7 @@ if 'http' in sys.modules:
 from http import HTTPStatus  # DO NOT REMOVE
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 # ----------------------------------------------------
-
+from airflow.exceptions import AirflowSkipException
 from datetime import datetime, timedelta
 
 # -------- secrets (K8s Secrets) --------
@@ -83,41 +82,37 @@ def to_strategy_args(coins: list[str]) -> list[list[str]]:
 with DAG(
     "crypto_hourly",
     start_date=datetime(2024, 1, 1),
-    schedule="@hourly",
+    schedule="5 * * * *",
     catchup=False,
     max_active_runs=1,
     default_args={"retries": 1, "retry_delay": timedelta(minutes=5)},
     tags=["crypto", "k8s", "gatsbyt"],
+    timezone="UTC",
+    params={"coins": None},
 ) as dag:
-    #resolve coins from param/variable, then build mapped arguments
-    coins = resolve_coins(dag.params.get("coins"))
+    coins = resolve_coins(dag.params.get("coins", None))
     forecast_args = to_forecast_args(coins)
     strategy_args = to_strategy_args(coins)
-    
 
-    # A) ETL
     with TaskGroup("etl") as etl:
-        etl_task = KubernetesPodOperator(
-            task_id="run_klines_etl_pod",
+        etl_1h = KubernetesPodOperator(
+            task_id="etl_1h",
             namespace="production",
-            name="klines_etl",
             image="registry-docker-registry.registry.svc.cluster.local:5000/klines-etl:latest",
             secrets=[db_secret],
             is_delete_operator_pod=True,
             execution_timeout=timedelta(minutes=15),
-            startup_timeout_seconds=900,
+            startup_timeout_seconds=300,
             get_logs=True,
             cmds=["/bin/bash", "-c"],
-            arguments=["cd /app && ./backfill_runner.sh"],
+            arguments=["cd /app && TIMEFRAME=1h ./etl_runner.sh"],
         )
 
-    # B) Forecast (mapped per coin)
     with TaskGroup("forecast") as forecast:
         forecast_task = (
             KubernetesPodOperator.partial(
                 task_id="predict",
                 namespace="production",
-                name="btc_forecast",
                 image="registry-docker-registry.registry.svc.cluster.local:5000/btc_forecast:latest",
                 secrets=[db_secret, env_secret_aws, env_secret_mlflow],
                 is_delete_operator_pod=True,
@@ -129,13 +124,11 @@ with DAG(
             .expand(arguments=forecast_args)
         )
 
-    # C) Strategies (mapped per coin)
     with TaskGroup("strategies") as strategies:
         strat_task = (
             KubernetesPodOperator.partial(
                 task_id="run_crypto_strategies_pod",
                 namespace="production",
-                name="crypto-strategies",
                 image="registry-docker-registry.registry.svc.cluster.local:5000/crypto-strategies:latest",
                 secrets=[db_secret, env_secret_aws, env_telegram],
                 is_delete_operator_pod=True,
@@ -143,17 +136,15 @@ with DAG(
                 startup_timeout_seconds=900,
                 env_vars={"PYTHONPATH": "/app"},
                 get_logs=True,
-                cmds=["/bin/bash", "-c"],  # needed for inline script
+                cmds=["/bin/bash", "-c"],
             )
             .expand(arguments=strategy_args)
         )
 
-    # D) Tracker (single task; map later if you split tracking per-coin)
     with TaskGroup("tracker") as tracker:
         track_task = KubernetesPodOperator(
             task_id="run_signal_tracker_pod",
             namespace="production",
-            name="signal-tracker",
             image="registry-docker-registry.registry.svc.cluster.local:5000/signal-tracker:latest",
             secrets=[db_secret, env_secret_aws, env_telegram],
             is_delete_operator_pod=True,
