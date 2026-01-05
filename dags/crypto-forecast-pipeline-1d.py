@@ -94,7 +94,7 @@ with DAG(
     strategy_args = to_strategy_args(coins)
 
     with TaskGroup("etl") as etl:
-        etl_1h = KubernetesPodOperator(
+        etl_1d = KubernetesPodOperator(
             task_id="etl_1d",
             namespace="production",
             image="registry-docker-registry.registry.svc.cluster.local:5000/klines-etl:latest",
