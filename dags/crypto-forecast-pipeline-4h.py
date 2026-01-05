@@ -72,7 +72,7 @@ def resolve_coins(param_coins=None) -> list[str]:
     return coins
 @task
 def to_forecast_args(coins: list[str]) -> list[list[str]]:
-    return [["generate_predictions.py", "--symbol", c] for c in coins]
+    return [["generate_predictions.py", "--symbol", c ,"--interval", "4h" , "version", "2"] for c in coins]
 
 @task
 def to_strategy_args(coins: list[str]) -> list[list[str]]:
@@ -107,21 +107,21 @@ with DAG(
             arguments=["cd /app && TIMEFRAME=4h ./etl_runner.sh"],
         )
 
-    # with TaskGroup("forecast") as forecast:
-    #     forecast_task = (
-    #         KubernetesPodOperator.partial(
-    #             task_id="predict",
-    #             namespace="production",
-    #             image="registry-docker-registry.registry.svc.cluster.local:5000/btc_forecast:latest",
-    #             secrets=[db_secret, env_secret_aws, env_secret_mlflow],
-    #             is_delete_operator_pod=True,
-    #             execution_timeout=timedelta(minutes=15),
-    #             startup_timeout_seconds=900,
-    #             get_logs=True,
-    #             cmds=["python3.11"],
-    #         )
-    #         .expand(arguments=forecast_args)
-    #     )
+    with TaskGroup("forecast") as forecast:
+        forecast_task = (
+            KubernetesPodOperator.partial(
+                task_id="predict",
+                namespace="production",
+                image="registry-docker-registry.registry.svc.cluster.local:5000/btc_forecast:latest",
+                secrets=[db_secret, env_secret_aws, env_secret_mlflow],
+                is_delete_operator_pod=True,
+                execution_timeout=timedelta(minutes=15),
+                startup_timeout_seconds=900,
+                get_logs=True,
+                cmds=["python3.11"],
+            )
+            .expand(arguments=forecast_args)
+        )
 
     # with TaskGroup("strategies") as strategies:
     #     strat_task = (
