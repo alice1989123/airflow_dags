@@ -76,7 +76,8 @@ def to_forecast_args(coins: list[str]) -> list[list[str]]:
 
 @task
 def to_strategy_args(coins: list[str]) -> list[list[str]]:
-    return [[f"cd /app && ./runner.sh --symbol {c}"] for c in coins]
+    return [[f"cd /app && ./runner.sh --symbol {c} --interval 1h --log-level INFO"] for c in coins]
+
 # -------------------------------------------------------------
 
 with DAG(
