@@ -72,7 +72,7 @@ def resolve_coins(param_coins=None) -> list[str]:
     return coins
 @task
 def to_forecast_args(coins: list[str]) -> list[list[str]]:
-    return [["generate_predictions.py", "--symbol", c ,"--interval", "4h" , "--version", "2"] for c in coins]
+    return [["generate_predictions.py", "--symbol", c ,"--interval", "4h"] for c in coins]
 
 @task
 def to_strategy_args(coins: list[str]) -> list[list[str]]:
