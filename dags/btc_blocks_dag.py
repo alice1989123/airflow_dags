@@ -81,37 +81,28 @@ with DAG(
         name="bitcoin-block-events-incremental",
         namespace="production",
 
-        # IMPORTANT: use the same image your cluster can pull
         image="registry-docker-registry.registry.svc.cluster.local:5000/bitcoin-etl:latest",
         image_pull_policy="IfNotPresent",
 
-        # CronJob command:
         cmds=["python3"],
         arguments=["/app/etl/transform/block_events_incremental.py"],
 
-        # CronJob env:
         env_vars={
             "ENV": "dev",
             "LOG_LEVEL": "INFO",
             "BLOCK_EVENTS_BATCH": "100",
         },
 
-        # secretKeyRef -> env:
         secrets=[env_secret],
-
-        # resources:
         container_resources=container_resources,
 
-        # mounts:
         volumes=volumes,
         volume_mounts=volume_mounts,
 
-        # nodeSelector:
         node_selector={"kubernetes.io/hostname": "alice-server"},
 
-        # behavior:
         get_logs=True,
         is_delete_operator_pod=True,
-        restart_policy="Never",
         startup_timeout_seconds=600,
+        do_xcom_push=False,
     )
