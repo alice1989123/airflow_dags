@@ -82,10 +82,10 @@ with DAG(
         namespace="production",
 
         image="registry-docker-registry.registry.svc.cluster.local:5000/bitcoin-etl:latest",
-        image_pull_policy="IfNotPresent",
+        image_pull_policy="Always",
 
         cmds=["python3"],
-        arguments=["/app/etl/transform/block_events_incremental.py"],
+        arguments=["/app/etl/block_events_incremental.py"],
 
         env_vars={
             "ENV": "dev",
