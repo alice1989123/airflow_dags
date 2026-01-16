@@ -70,7 +70,7 @@ container_resources = k8s.V1ResourceRequirements(
 with DAG(
     dag_id="bitcoin_block_events_incremental",
     default_args=default_args,
-    schedule="*/15 * * * *",     # same as your CronJob
+    schedule="0 0 * * *",     # same as your CronJob
     start_date=datetime(2025, 1, 1),
     catchup=False,
     max_active_runs=1,           # CronJob concurrencyPolicy: Forbid
@@ -106,3 +106,36 @@ with DAG(
         startup_timeout_seconds=600,
         do_xcom_push=False,
     )
+
+    daily_metrics = KubernetesPodOperator(
+    task_id="daily_onchain_metrics",
+    name="bitcoin-daily-onchain-metrics",
+    namespace="production",
+
+    image="registry-docker-registry.registry.svc.cluster.local:5000/bitcoin-etl:latest",
+    image_pull_policy="Always",
+
+    cmds=["python3"],
+    arguments=["/app/etl/daily_onchain_metrics_spark.py"],
+
+    env_vars={
+        "ENV": "dev",
+        "LOG_LEVEL": "INFO",
+        # add any metric params here if you have them
+    },
+
+    secrets=[env_secret],
+    container_resources=container_resources,
+
+    volumes=volumes,
+    volume_mounts=volume_mounts,
+
+    node_selector={"kubernetes.io/hostname": "alice-server"},
+
+    get_logs=True,
+    is_delete_operator_pod=True,
+    startup_timeout_seconds=600,
+    do_xcom_push=False,
+)
+    
+    block_events >> daily_metrics
