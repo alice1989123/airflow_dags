@@ -96,7 +96,7 @@ with DAG(
     with TaskGroup("etl") as etl:
         etl_1h = KubernetesPodOperator(
             task_id="etl_1h",
-            namespace="production",
+            namespace="gatsbyt",
             image="390402534126.dkr.ecr.us-east-1.amazonaws.com/klines-etl@sha256:0af2df904835fd3b4ebf019c4091897d8eb723d5da92958936b064a79e4a9f99",
             secrets=[db_secret],
             is_delete_operator_pod=True,
@@ -111,7 +111,7 @@ with DAG(
         forecast_task = (
             KubernetesPodOperator.partial(
                 task_id="predict",
-                namespace="production",
+                namespace="gatsbyt",
                 image="390402534126.dkr.ecr.us-east-1.amazonaws.com/btc_forecast@sha256:32afc9d6f2e4c654842935524398c25a3f1d10ceaaf8265588d0afd0bb363be5",
                 secrets=[db_secret, env_secret_aws, env_secret_mlflow],
                 is_delete_operator_pod=True,
@@ -127,7 +127,7 @@ with DAG(
         strat_task = (
             KubernetesPodOperator.partial(
                 task_id="run_crypto_strategies_pod",
-                namespace="production",
+                namespace="gatsbyt",
                 image="390402534126.dkr.ecr.us-east-1.amazonaws.com/crypto-strategies@sha256:50a07053d94c7945c4ebe52602e87a96d3c5c67b324a75f49264067bc5341601",
                 secrets=[db_secret, env_secret_aws, env_telegram],
                 is_delete_operator_pod=True,
@@ -143,7 +143,7 @@ with DAG(
     with TaskGroup("tracker") as tracker:
         track_task = KubernetesPodOperator(
             task_id="run_signal_tracker_pod",
-            namespace="production",
+            namespace="gatsbyt",
             image="390402534126.dkr.ecr.us-east-1.amazonaws.com/signal-tracker@sha256:b716a19f321a8f287e9efb6278684791604f72694dbfe885cc26ea959fedf660",
             secrets=[db_secret, env_secret_aws, env_telegram],
             is_delete_operator_pod=True,
