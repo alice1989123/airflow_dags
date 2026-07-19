@@ -2,7 +2,6 @@ import sys
 import types
 from datetime import datetime
 from airflow import DAG
-from airflow.models import Variable
 from kubernetes.client import V1EnvFromSource, V1SecretEnvSource
 # -- Fix para evitar colisión con el módulo estándar 'http'
 if 'http' in sys.modules:
@@ -23,16 +22,14 @@ with DAG(
     tags=["security", "kubernetes"]
 ) as dag:
 
-    image_tag = Variable.get("SECURITY_UPDATER_IMAGE_TAG", default_var="latest")
-
     run_updater =KubernetesPodOperator(
             task_id='run_updater',
             name='security-updater',
             namespace='production',
-            image='registry.local:31504/security_group_updater:latest',
+            image='390402534126.dkr.ecr.us-east-1.amazonaws.com/security_group_updater@sha256:5fca77c835cb0ded5bf4d49319e80ffa06027c4b744738f0761794e244e15966',
             cmds=['python'],
             arguments=['security_group_updater.py'],
-            image_pull_policy='Always',
+            image_pull_policy='IfNotPresent',
             env_from=[
                 V1EnvFromSource(secret_ref=V1SecretEnvSource(name='aws-creds-secret'))
             ],

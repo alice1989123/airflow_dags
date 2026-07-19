@@ -54,7 +54,7 @@ with DAG(
     task_id="run_crypto-strategies_pod",
     namespace="production",
     name="crypto-strategies",
-    image="registry-docker-registry.registry.svc.cluster.local:5000/crypto-strategies:latest",
+    image="390402534126.dkr.ecr.us-east-1.amazonaws.com/crypto-strategies@sha256:50a07053d94c7945c4ebe52602e87a96d3c5c67b324a75f49264067bc5341601",
     secrets=[env_secret , env_secret_aws , env_telegram],
     is_delete_operator_pod=True,
     execution_timeout=timedelta(minutes=15),

@@ -68,7 +68,7 @@ with DAG(
         task_id="run_btc_forecast_pod",
         namespace="production",
         name="btc_forecast",
-        image="registry-docker-registry.registry.svc.cluster.local:5000/btc_forecast:latest",
+        image="390402534126.dkr.ecr.us-east-1.amazonaws.com/btc_forecast@sha256:32afc9d6f2e4c654842935524398c25a3f1d10ceaaf8265588d0afd0bb363be5",
         secrets=[env_secret, env_secret_aws, env_secret_mlflow],
         is_delete_operator_pod=True,
         execution_timeout=timedelta(minutes=15),

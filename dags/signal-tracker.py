@@ -54,7 +54,7 @@ with DAG(
     task_id="run_signal-tracker_pod",
     namespace="production",
     name="signal-tracker",
-    image="registry-docker-registry.registry.svc.cluster.local:5000/signal-tracker:latest",
+    image="390402534126.dkr.ecr.us-east-1.amazonaws.com/signal-tracker@sha256:b716a19f321a8f287e9efb6278684791604f72694dbfe885cc26ea959fedf660",
     secrets=[env_secret , env_secret_aws , env_telegram],
     is_delete_operator_pod=True,
     execution_timeout=timedelta(minutes=15),

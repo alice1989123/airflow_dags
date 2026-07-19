@@ -42,7 +42,7 @@ with DAG(
     task_id="run_klines_etl_pod",
     namespace="production",
     name="klines_etl",
-    image="registry-docker-registry.registry.svc.cluster.local:5000/klines-etl:latest",
+    image="390402534126.dkr.ecr.us-east-1.amazonaws.com/klines-etl@sha256:0af2df904835fd3b4ebf019c4091897d8eb723d5da92958936b064a79e4a9f99",
     secrets=[env_secret],
     is_delete_operator_pod=True,
     execution_timeout=timedelta(minutes=15),

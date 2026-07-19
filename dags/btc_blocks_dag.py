@@ -81,8 +81,8 @@ with DAG(
         name="bitcoin-block-events-incremental",
         namespace="production",
 
-        image="registry-docker-registry.registry.svc.cluster.local:5000/bitcoin-etl:latest",
-        image_pull_policy="Always",
+        image="390402534126.dkr.ecr.us-east-1.amazonaws.com/bitcoin-etl@sha256:1db07527fa436f15e414b6886d1738f0938e21f6aaf65c71aef159a9915b4805",
+        image_pull_policy="IfNotPresent",
 
         cmds=["python3"],
         arguments=["/app/etl/block_events_incremental.py"],
@@ -112,8 +112,8 @@ with DAG(
     name="bitcoin-daily-onchain-metrics",
     namespace="production",
 
-    image="registry-docker-registry.registry.svc.cluster.local:5000/bitcoin-etl:latest",
-    image_pull_policy="Always",
+    image="390402534126.dkr.ecr.us-east-1.amazonaws.com/bitcoin-etl@sha256:1db07527fa436f15e414b6886d1738f0938e21f6aaf65c71aef159a9915b4805",
+    image_pull_policy="IfNotPresent",
 
     cmds=["python3"],
     arguments=["/app/etl/daily_onchain_metrics_spark.py"],
