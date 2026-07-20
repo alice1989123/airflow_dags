@@ -127,7 +127,7 @@ with DAG(
             KubernetesPodOperator.partial(
                 task_id="predict",
                 namespace="gatsbyt",
-                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/btc_forecast@sha256:32afc9d6f2e4c654842935524398c25a3f1d10ceaaf8265588d0afd0bb363be5",
+                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/btc_forecast@sha256:b48b96b6c9279801baa3befe771728089131ae9000eeeaabf11201f4dabfed6e",
                 secrets=[db_secret, env_secret_mlflow],
                 is_delete_operator_pod=True,
                 execution_timeout=timedelta(minutes=15),
