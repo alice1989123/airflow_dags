@@ -34,7 +34,14 @@ def _parse_coins(val):
         s = val.strip()
         if not s:
             return []
-        seq = json.loads(s) if s.startswith('[') else re.split(r'[,\s]+', s)
+        try:
+            parsed = json.loads(s)
+        except json.JSONDecodeError:
+            seq = re.split(r'[,\s]+', s)
+        else:
+            if parsed is None:
+                return []
+            seq = parsed if isinstance(parsed, list) else [parsed]
     else:
         return []
     out, seen = [], set()
@@ -92,7 +99,7 @@ with DAG(
     tags=["crypto", "k8s", "gatsbyt"],
     params={"coins": None},
 ) as dag:
-    coins = resolve_coins(dag.params.get("coins", None))
+    coins = resolve_coins("{{ dag_run.conf.get('coins', params.coins) | tojson }}")
     etl_args = to_etl_args(coins)
     forecast_args = to_forecast_args(coins)
     strategy_args = to_strategy_args(coins)
@@ -109,6 +116,8 @@ with DAG(
                 startup_timeout_seconds=300,
                 get_logs=True,
                 cmds=["python", "-m", "src.etl_runner"],
+                in_cluster=True,
+                kubernetes_conn_id=None,
             )
             .expand(arguments=etl_args)
         )
@@ -125,6 +134,8 @@ with DAG(
                 startup_timeout_seconds=900,
                 get_logs=True,
                 cmds=["python3.11"],
+                in_cluster=True,
+                kubernetes_conn_id=None,
             )
             .expand(arguments=forecast_args)
         )
@@ -142,6 +153,8 @@ with DAG(
                 env_vars={"PYTHONPATH": "/app"},
                 get_logs=True,
                 cmds=["/bin/bash", "-c"],
+                in_cluster=True,
+                kubernetes_conn_id=None,
             )
             .expand(arguments=strategy_args)
         )
@@ -158,6 +171,8 @@ with DAG(
             get_logs=True,
             cmds=["python"],
             arguments=["main.py"],
+            in_cluster=True,
+            kubernetes_conn_id=None,
         )
 
     etl >> forecast >> strategies >> tracker
