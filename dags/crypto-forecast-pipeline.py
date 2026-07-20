@@ -20,7 +20,6 @@ from datetime import datetime, timedelta
 # -------- secrets (K8s Secrets) --------
 
 db_secret = Secret(deploy_type='env', deploy_target=None, secret='db-creds')
-env_secret_aws = Secret(deploy_type='env', deploy_target=None, secret='aws-credentials-dynamo')
 env_secret_mlflow = Secret(deploy_type='env', deploy_target=None, secret='mlflow-credentials')
 env_telegram = Secret(deploy_type='env', deploy_target=None, secret='telegram')
 
@@ -113,7 +112,7 @@ with DAG(
                 task_id="predict",
                 namespace="gatsbyt",
                 image="390402534126.dkr.ecr.us-east-1.amazonaws.com/btc_forecast@sha256:32afc9d6f2e4c654842935524398c25a3f1d10ceaaf8265588d0afd0bb363be5",
-                secrets=[db_secret, env_secret_aws, env_secret_mlflow],
+                secrets=[db_secret, env_secret_mlflow],
                 is_delete_operator_pod=True,
                 execution_timeout=timedelta(minutes=15),
                 startup_timeout_seconds=900,
@@ -129,7 +128,7 @@ with DAG(
                 task_id="run_crypto_strategies_pod",
                 namespace="gatsbyt",
                 image="390402534126.dkr.ecr.us-east-1.amazonaws.com/crypto-strategies@sha256:50a07053d94c7945c4ebe52602e87a96d3c5c67b324a75f49264067bc5341601",
-                secrets=[db_secret, env_secret_aws, env_telegram],
+                secrets=[db_secret, env_telegram],
                 is_delete_operator_pod=True,
                 execution_timeout=timedelta(minutes=15),
                 startup_timeout_seconds=900,
@@ -145,7 +144,7 @@ with DAG(
             task_id="run_signal_tracker_pod",
             namespace="gatsbyt",
             image="390402534126.dkr.ecr.us-east-1.amazonaws.com/signal-tracker@sha256:b716a19f321a8f287e9efb6278684791604f72694dbfe885cc26ea959fedf660",
-            secrets=[db_secret, env_secret_aws, env_telegram],
+            secrets=[db_secret, env_telegram],
             is_delete_operator_pod=True,
             execution_timeout=timedelta(minutes=15),
             startup_timeout_seconds=900,
