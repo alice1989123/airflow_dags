@@ -107,7 +107,7 @@ with DAG(
     with TaskGroup("etl") as etl:
         etl_1d = (
             KubernetesPodOperator.partial(
-                task_id="etl_1d_by_coin",
+                task_id="etl_1d_mapped",
                 namespace="gatsbyt",
                 image="390402534126.dkr.ecr.us-east-1.amazonaws.com/klines-etl@sha256:0af2df904835fd3b4ebf019c4091897d8eb723d5da92958936b064a79e4a9f99",
                 secrets=[db_secret],
