@@ -70,6 +70,10 @@ def resolve_coins(param_coins=None) -> list[str]:
 
     return coins
 @task
+def to_etl_args(coins: list[str]) -> list[list[str]]:
+    return [["--timeframe", "1h", "--symbol", c] for c in coins]
+
+@task
 def to_forecast_args(coins: list[str]) -> list[list[str]]:
     return [["generate_predictions.py", "--symbol", c ,"--interval", "1h"] for c in coins]
 
@@ -89,21 +93,24 @@ with DAG(
     params={"coins": None},
 ) as dag:
     coins = resolve_coins(dag.params.get("coins", None))
+    etl_args = to_etl_args(coins)
     forecast_args = to_forecast_args(coins)
     strategy_args = to_strategy_args(coins)
 
     with TaskGroup("etl") as etl:
-        etl_1h = KubernetesPodOperator(
-            task_id="etl_1h",
-            namespace="gatsbyt",
-            image="390402534126.dkr.ecr.us-east-1.amazonaws.com/klines-etl@sha256:0af2df904835fd3b4ebf019c4091897d8eb723d5da92958936b064a79e4a9f99",
-            secrets=[db_secret],
-            is_delete_operator_pod=True,
-            execution_timeout=timedelta(minutes=15),
-            startup_timeout_seconds=300,
-            get_logs=True,
-            cmds=["/bin/bash", "-c"],
-            arguments=["cd /app && TIMEFRAME=1h ./etl_runner.sh"],
+        etl_1h = (
+            KubernetesPodOperator.partial(
+                task_id="etl_1h",
+                namespace="gatsbyt",
+                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/klines-etl@sha256:0af2df904835fd3b4ebf019c4091897d8eb723d5da92958936b064a79e4a9f99",
+                secrets=[db_secret],
+                is_delete_operator_pod=True,
+                execution_timeout=timedelta(minutes=15),
+                startup_timeout_seconds=300,
+                get_logs=True,
+                cmds=["python", "-m", "src.etl_runner"],
+            )
+            .expand(arguments=etl_args)
         )
 
     with TaskGroup("forecast") as forecast:
