@@ -55,6 +55,27 @@ ETL_VOLUME_MOUNTS = [
     ),
 ]
 
+METRICS_VOLUMES = ETL_VOLUMES + [
+    k8s.V1Volume(
+        name="metrics-runner",
+        config_map=k8s.V1ConfigMapVolumeSource(
+            name="bitcoin-metrics-runner",
+            default_mode=0o555,
+        ),
+    ),
+]
+
+METRICS_VOLUME_MOUNTS = ETL_VOLUME_MOUNTS + [
+    k8s.V1VolumeMount(
+        name="metrics-runner",
+        mount_path=(
+            "/recovery/bitcoin-daily-onchain-metrics-optimized.py"
+        ),
+        sub_path="bitcoin-daily-onchain-metrics-optimized.py",
+        read_only=True,
+    ),
+]
+
 DEFAULT_ARGS = {
     "owner": "alice",
     "retries": 1,
@@ -121,15 +142,17 @@ with DAG(
         image=ETL_IMAGE,
         image_pull_policy="IfNotPresent",
         cmds=["python3"],
-        arguments=["/app/etl/daily_onchain_metrics_spark.py"],
+        arguments=[
+            "/recovery/bitcoin-daily-onchain-metrics-optimized.py"
+        ],
         env_vars={
             "ENV": "dev",
             "LOG_LEVEL": "INFO",
         },
         secrets=[ETL_SECRET],
         container_resources=DAILY_METRICS_RESOURCES,
-        volumes=ETL_VOLUMES,
-        volume_mounts=ETL_VOLUME_MOUNTS,
+        volumes=METRICS_VOLUMES,
+        volume_mounts=METRICS_VOLUME_MOUNTS,
         node_selector={"kubernetes.io/hostname": "alice-server"},
         get_logs=True,
         is_delete_operator_pod=True,
