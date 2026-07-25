@@ -112,7 +112,7 @@ with DAG(
         env_vars={
             "ENV": "dev",
             "LOG_LEVEL": "INFO",
-            "BLOCK_EVENTS_BATCH": "100",
+            "BLOCK_EVENTS_BATCH": "1000",
         },
         secrets=[ETL_SECRET],
         container_resources=BLOCK_EVENTS_RESOURCES,
