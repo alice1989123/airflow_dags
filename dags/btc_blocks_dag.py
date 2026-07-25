@@ -1,54 +1,48 @@
-from airflow import DAG
-import types
-
-from airflow.providers.cncf.kubernetes.secret import Secret
 from datetime import datetime, timedelta
 import sys
-#from dotenv import dotenv_values
-if 'http' in sys.modules:
-    if not isinstance(sys.modules['http'], types.ModuleType) or not hasattr(sys.modules['http'], 'HTTPStatus'):
-        del sys.modules['http']
+import types
 
-from http import HTTPStatus  # Importación correcta del estándar
-
-# -- Importación del operador una vez corregido el path
+from airflow import DAG
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
+from airflow.providers.cncf.kubernetes.secret import Secret
 from kubernetes.client import models as k8s
 
-from datetime import datetime, timedelta
+if "http" in sys.modules:
+    http_module = sys.modules["http"]
+    if not isinstance(http_module, types.ModuleType) or not hasattr(
+        http_module, "HTTPStatus"
+    ):
+        del sys.modules["http"]
 
-default_args = {
-    "owner": "alice",
-    "retries": 3,
-    "retry_delay": timedelta(seconds=30),
-}
-
-# --- Secrets: map secretKeyRef -> env vars ---
-env_secret = Secret(
-    deploy_type='env',          # inject as environment variables
-    deploy_target=None,         # match keys as is
-    secret='btc-etl-env'         # name of the secret you created
+ETL_IMAGE = (
+    "390402534126.dkr.ecr.us-east-1.amazonaws.com/"
+    "bitcoin-etl@sha256:1db07527fa436f15e414b6886d1738f0938e21f6aaf65c71aef159a9915b4805"
+)
+ETL_NAMESPACE = "gatsbyt"
+ETL_SECRET = Secret(
+    deploy_type="env",
+    deploy_target=None,
+    secret="btc-etl-env",
 )
 
-# --- Volumes (hostPath) ---
-volumes = [
+ETL_VOLUMES = [
     k8s.V1Volume(
         name="btc-output",
         host_path=k8s.V1HostPathVolumeSource(
             path="/srv/btc-etl/output",
-            type="DirectoryOrCreate",
+            type="Directory",
         ),
     ),
     k8s.V1Volume(
         name="btc-state",
         host_path=k8s.V1HostPathVolumeSource(
             path="/srv/btc-etl/state",
-            type="DirectoryOrCreate",
+            type="Directory",
         ),
     ),
 ]
 
-volume_mounts = [
+ETL_VOLUME_MOUNTS = [
     k8s.V1VolumeMount(
         name="btc-output",
         mount_path="/srv/btc-etl/output",
@@ -61,81 +55,85 @@ volume_mounts = [
     ),
 ]
 
-# --- Resources (requests/limits) ---
-container_resources = k8s.V1ResourceRequirements(
-    requests={"cpu": "500m", "memory": "2Gi"},
-    limits={"cpu": "2", "memory": "4Gi"},
+DEFAULT_ARGS = {
+    "owner": "alice",
+    "retries": 1,
+    "retry_delay": timedelta(minutes=2),
+}
+
+BLOCK_EVENTS_RESOURCES = k8s.V1ResourceRequirements(
+    requests={"cpu": "2", "memory": "18Gi"},
+    limits={"cpu": "4", "memory": "24Gi"},
+)
+
+DAILY_METRICS_RESOURCES = k8s.V1ResourceRequirements(
+    requests={"cpu": "2", "memory": "18Gi"},
+    limits={"cpu": "6", "memory": "24Gi"},
 )
 
 with DAG(
     dag_id="bitcoin_block_events_incremental",
-    default_args=default_args,
-    schedule="0 0 * * *",     # same as your CronJob
+    default_args=DEFAULT_ARGS,
+    schedule="*/15 * * * *",
     start_date=datetime(2025, 1, 1),
     catchup=False,
-    max_active_runs=1,           # CronJob concurrencyPolicy: Forbid
-) as dag:
-
-    block_events = KubernetesPodOperator(
+    max_active_runs=1,
+    tags=["bitcoin", "etl", "incremental"],
+) as block_events_dag:
+    KubernetesPodOperator(
         task_id="block_events_incremental",
         name="bitcoin-block-events-incremental",
-        namespace="production",
-
-        image="390402534126.dkr.ecr.us-east-1.amazonaws.com/bitcoin-etl@sha256:1db07527fa436f15e414b6886d1738f0938e21f6aaf65c71aef159a9915b4805",
+        namespace=ETL_NAMESPACE,
+        image=ETL_IMAGE,
         image_pull_policy="IfNotPresent",
-
         cmds=["python3"],
         arguments=["/app/etl/block_events_incremental.py"],
-
         env_vars={
             "ENV": "dev",
             "LOG_LEVEL": "INFO",
             "BLOCK_EVENTS_BATCH": "100",
         },
-
-        secrets=[env_secret],
-        container_resources=container_resources,
-
-        volumes=volumes,
-        volume_mounts=volume_mounts,
-
+        secrets=[ETL_SECRET],
+        container_resources=BLOCK_EVENTS_RESOURCES,
+        volumes=ETL_VOLUMES,
+        volume_mounts=ETL_VOLUME_MOUNTS,
         node_selector={"kubernetes.io/hostname": "alice-server"},
-
         get_logs=True,
         is_delete_operator_pod=True,
         startup_timeout_seconds=600,
+        execution_timeout=timedelta(minutes=30),
         do_xcom_push=False,
     )
 
-    daily_metrics = KubernetesPodOperator(
-    task_id="daily_onchain_metrics",
-    name="bitcoin-daily-onchain-metrics",
-    namespace="production",
-
-    image="390402534126.dkr.ecr.us-east-1.amazonaws.com/bitcoin-etl@sha256:1db07527fa436f15e414b6886d1738f0938e21f6aaf65c71aef159a9915b4805",
-    image_pull_policy="IfNotPresent",
-
-    cmds=["python3"],
-    arguments=["/app/etl/daily_onchain_metrics_spark.py"],
-
-    env_vars={
-        "ENV": "dev",
-        "LOG_LEVEL": "INFO",
-        # add any metric params here if you have them
-    },
-
-    secrets=[env_secret],
-    container_resources=container_resources,
-
-    volumes=volumes,
-    volume_mounts=volume_mounts,
-
-    node_selector={"kubernetes.io/hostname": "alice-server"},
-
-    get_logs=True,
-    is_delete_operator_pod=True,
-    startup_timeout_seconds=600,
-    do_xcom_push=False,
-)
-    
-    block_events >> daily_metrics
+with DAG(
+    dag_id="bitcoin_daily_onchain_metrics",
+    default_args=DEFAULT_ARGS,
+    schedule="30 1 * * *",
+    start_date=datetime(2025, 1, 1),
+    catchup=False,
+    max_active_runs=1,
+    tags=["bitcoin", "analytics", "daily"],
+) as daily_metrics_dag:
+    KubernetesPodOperator(
+        task_id="daily_onchain_metrics",
+        name="bitcoin-daily-onchain-metrics",
+        namespace=ETL_NAMESPACE,
+        image=ETL_IMAGE,
+        image_pull_policy="IfNotPresent",
+        cmds=["python3"],
+        arguments=["/app/etl/daily_onchain_metrics_spark.py"],
+        env_vars={
+            "ENV": "dev",
+            "LOG_LEVEL": "INFO",
+        },
+        secrets=[ETL_SECRET],
+        container_resources=DAILY_METRICS_RESOURCES,
+        volumes=ETL_VOLUMES,
+        volume_mounts=ETL_VOLUME_MOUNTS,
+        node_selector={"kubernetes.io/hostname": "alice-server"},
+        get_logs=True,
+        is_delete_operator_pod=True,
+        startup_timeout_seconds=600,
+        execution_timeout=timedelta(hours=2),
+        do_xcom_push=False,
+    )
