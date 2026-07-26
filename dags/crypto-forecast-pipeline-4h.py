@@ -108,7 +108,7 @@ with DAG(
             KubernetesPodOperator.partial(
                 task_id="etl_4h_by_coin",
                 namespace="gatsbyt",
-                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/klines-etl@sha256:0af2df904835fd3b4ebf019c4091897d8eb723d5da92958936b064a79e4a9f99",
+                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/klines-etl@sha256:39c27910bbfd1648609435979ebdd63a45f95b8963ad6ace3bbcf3f1a7a38746",
                 secrets=[db_secret],
                 is_delete_operator_pod=True,
                 execution_timeout=timedelta(minutes=15),
