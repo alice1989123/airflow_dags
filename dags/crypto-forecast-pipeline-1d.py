@@ -24,10 +24,13 @@ env_secret_mlflow = Secret(deploy_type='env', deploy_target=None, secret='mlflow
 env_telegram = Secret(deploy_type='env', deploy_target=None, secret='telegram')
 
 DAILY_MODEL_COINS = frozenset({
-    "AAVEUSDT", "ADAUSDT", "ATOMUSDT", "AVAXUSDT", "BCHUSDT",
-    "BNBUSDT", "BTCUSDT", "DOGEUSDT", "DOTUSDT", "ETCUSDT",
-    "ETHUSDT", "FILUSDT", "HBARUSDT", "LINKUSDT", "LTCUSDT",
-    "NEOUSDT", "SHIBUSDT", "SOLUSDT",
+    "ADAUSDT",
+    "BNBUSDT",
+    "BTCUSDT",
+    "ETCUSDT",
+    "ETHUSDT",
+    "LTCUSDT",
+    "NEOUSDT",
 })
 
 
