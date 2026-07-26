@@ -145,7 +145,7 @@ with DAG(
             KubernetesPodOperator.partial(
                 task_id="run_crypto_strategies_pod",
                 namespace="gatsbyt",
-                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/crypto-strategies@sha256:a6d0f989ae00e51800eb09e5db4db7bd761fb46a563e2980a7e1348d96e3adf9",
+                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/crypto-strategies@sha256:530cc9ce0b55d028ea3e788e5d6bb7623cd75d4b56d1a5c1cbc8ea8dee4b7889",
                 secrets=[db_secret, env_telegram],
                 is_delete_operator_pod=True,
                 execution_timeout=timedelta(minutes=15),
@@ -163,7 +163,7 @@ with DAG(
         track_task = KubernetesPodOperator(
             task_id="run_signal_tracker_pod",
             namespace="gatsbyt",
-            image="390402534126.dkr.ecr.us-east-1.amazonaws.com/signal-tracker@sha256:b716a19f321a8f287e9efb6278684791604f72694dbfe885cc26ea959fedf660",
+            image="390402534126.dkr.ecr.us-east-1.amazonaws.com/signal-tracker@sha256:bcfc4ca2e861e9710cbbeb71aae4e64dc0a9897633116d732c7f422e4a653146",
             secrets=[db_secret, env_telegram],
             is_delete_operator_pod=True,
             execution_timeout=timedelta(minutes=15),
