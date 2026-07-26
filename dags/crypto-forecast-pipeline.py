@@ -163,7 +163,7 @@ with DAG(
         track_task = KubernetesPodOperator(
             task_id="run_signal_tracker_pod",
             namespace="gatsbyt",
-            image="390402534126.dkr.ecr.us-east-1.amazonaws.com/signal-tracker@sha256:bcfc4ca2e861e9710cbbeb71aae4e64dc0a9897633116d732c7f422e4a653146",
+            image="390402534126.dkr.ecr.us-east-1.amazonaws.com/signal-tracker@sha256:ee2aca888f856afb1f4a36f72ca013fcd09244fe7290cb8bda6d06fea6809618",
             secrets=[db_secret, env_telegram],
             is_delete_operator_pod=True,
             execution_timeout=timedelta(minutes=15),
