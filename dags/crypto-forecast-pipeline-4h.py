@@ -86,7 +86,7 @@ def to_forecast_args(coins: list[str]) -> list[list[str]]:
 
 @task
 def to_strategy_args(coins: list[str]) -> list[list[str]]:
-    return [[f"cd /app && ./runner.sh --symbol {c}"] for c in coins]
+    return [[f"cd /app && ./runner.sh --symbol {c} --interval 4h"] for c in coins]
 # -------------------------------------------------------------
 
 with DAG(
@@ -102,6 +102,7 @@ with DAG(
     coins = resolve_coins("{{ dag_run.conf.get('coins', params.coins) | tojson }}")
     etl_args = to_etl_args(coins)
     forecast_args = to_forecast_args(coins)
+    strategy_args = to_strategy_args(coins)
 
     with TaskGroup("etl") as etl:
         etl_4h = (
@@ -139,37 +140,39 @@ with DAG(
             .expand(arguments=forecast_args)
         )
 
-    # with TaskGroup("strategies") as strategies:
-    #     strat_task = (
-    #         KubernetesPodOperator.partial(
-    #             task_id="run_crypto_strategies_pod",
-    #             namespace="gatsbyt",
-    #             image="390402534126.dkr.ecr.us-east-1.amazonaws.com/crypto-strategies@sha256:50a07053d94c7945c4ebe52602e87a96d3c5c67b324a75f49264067bc5341601",
-    #             secrets=[db_secret, env_secret_aws, env_telegram],
-    #             is_delete_operator_pod=True,
-    #             execution_timeout=timedelta(minutes=15),
-    #             startup_timeout_seconds=900,
-    #             env_vars={"PYTHONPATH": "/app"},
-    #             get_logs=True,
-    #             cmds=["/bin/bash", "-c"],
-    #         )
-    #         .expand(arguments=strategy_args)
-    #     )
+    with TaskGroup("strategies") as strategies:
+        strat_task = (
+            KubernetesPodOperator.partial(
+                task_id="run_crypto_strategies_pod",
+                namespace="gatsbyt",
+                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/crypto-strategies@sha256:530cc9ce0b55d028ea3e788e5d6bb7623cd75d4b56d1a5c1cbc8ea8dee4b7889",
+                secrets=[db_secret, env_telegram],
+                is_delete_operator_pod=True,
+                execution_timeout=timedelta(minutes=15),
+                startup_timeout_seconds=900,
+                env_vars={"PYTHONPATH": "/app"},
+                get_logs=True,
+                cmds=["/bin/bash", "-c"],
+                in_cluster=True,
+                kubernetes_conn_id=None,
+            )
+            .expand(arguments=strategy_args)
+        )
 
-    # with TaskGroup("tracker") as tracker:
-    #     track_task = KubernetesPodOperator(
-    #         task_id="run_signal_tracker_pod",
-    #         namespace="gatsbyt",
-    #         image="390402534126.dkr.ecr.us-east-1.amazonaws.com/signal-tracker@sha256:b716a19f321a8f287e9efb6278684791604f72694dbfe885cc26ea959fedf660",
-    #         secrets=[db_secret, env_secret_aws, env_telegram],
-    #         is_delete_operator_pod=True,
-    #         execution_timeout=timedelta(minutes=15),
-    #         startup_timeout_seconds=900,
-    #         get_logs=True,
-    #         cmds=["python"],
-    #         arguments=["main.py"],
-    #     )
+    with TaskGroup("tracker") as tracker:
+        track_task = KubernetesPodOperator(
+            task_id="run_signal_tracker_pod",
+            namespace="gatsbyt",
+            image="390402534126.dkr.ecr.us-east-1.amazonaws.com/signal-tracker@sha256:ee2aca888f856afb1f4a36f72ca013fcd09244fe7290cb8bda6d06fea6809618",
+            secrets=[db_secret, env_telegram],
+            is_delete_operator_pod=True,
+            execution_timeout=timedelta(minutes=15),
+            startup_timeout_seconds=900,
+            get_logs=True,
+            cmds=["python"],
+            arguments=["main.py"],
+            in_cluster=True,
+            kubernetes_conn_id=None,
+        )
 
-    # etl >> forecast >> strategies >> tracker
-
-    etl >> forecast
+    etl >> forecast >> strategies >> tracker
