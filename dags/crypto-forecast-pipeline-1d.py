@@ -129,7 +129,7 @@ with DAG(
             KubernetesPodOperator.partial(
                 task_id="etl_1d_mapped",
                 namespace="gatsbyt",
-                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/klines-etl@sha256:39c27910bbfd1648609435979ebdd63a45f95b8963ad6ace3bbcf3f1a7a38746",
+                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/klines-etl@sha256:02d89d2ad5676763337120d2ba8c8fc041b6ac6374eb3c9d01329adb4264f0dc",
                 secrets=[db_secret],
                 is_delete_operator_pod=True,
                 execution_timeout=timedelta(minutes=15),
@@ -147,7 +147,7 @@ with DAG(
             KubernetesPodOperator.partial(
                 task_id="predict",
                 namespace="gatsbyt",
-                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/btc_forecast@sha256:62bea4bc77fd46ef11e1f7493d0ac96640a810d22a3f7c84ca59aee8708b2677",
+                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/btc_forecast@sha256:95d08d5ae310322e73bc119b7fe8c88d6f9575be23754cc58318831c79c2ad99",
                 secrets=[db_secret, env_secret_mlflow],
                 is_delete_operator_pod=True,
                 execution_timeout=timedelta(minutes=15),
