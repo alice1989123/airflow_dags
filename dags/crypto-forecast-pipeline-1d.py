@@ -23,6 +23,13 @@ db_secret = Secret(deploy_type='env', deploy_target=None, secret='db-creds')
 env_secret_mlflow = Secret(deploy_type='env', deploy_target=None, secret='mlflow-credentials')
 env_telegram = Secret(deploy_type='env', deploy_target=None, secret='telegram')
 
+DAILY_MODEL_COINS = frozenset({
+    "AAVEUSDT", "ADAUSDT", "ATOMUSDT", "AVAXUSDT", "BCHUSDT",
+    "BNBUSDT", "BTCUSDT", "DOGEUSDT", "DOTUSDT", "ETCUSDT",
+    "ETHUSDT", "FILUSDT", "HBARUSDT", "LINKUSDT", "LTCUSDT",
+    "NEOUSDT", "SHIBUSDT", "SOLUSDT",
+})
+
 
 # --------  dynamic coin resolution + arg builders --------
 def _parse_coins(val):
@@ -76,6 +83,18 @@ def resolve_coins(param_coins=None) -> list[str]:
         raise AirflowSkipException("No coins resolved from params/Variable/DB")
 
     return coins
+
+@task
+def select_daily_model_coins(coins: list[str]) -> list[str]:
+    configured = _parse_coins(
+        Variable.get("DAILY_FORECAST_COINS", default_var="")
+    )
+    supported = set(configured) if configured else DAILY_MODEL_COINS
+    selected = [coin for coin in coins if coin in supported]
+    if not selected:
+        raise AirflowSkipException("No tracked coins have registered daily models")
+    return selected
+
 @task
 def to_etl_args(coins: list[str]) -> list[list[str]]:
     return [["--timeframe", "1d", "--symbol", c] for c in coins]
@@ -100,9 +119,10 @@ with DAG(
     params={"coins": None},
 ) as dag:
     coins = resolve_coins("{{ dag_run.conf.get('coins', params.coins) | tojson }}")
+    model_coins = select_daily_model_coins(coins)
     etl_args = to_etl_args(coins)
-    forecast_args = to_forecast_args(coins)
-    strategy_args = to_strategy_args(coins)
+    forecast_args = to_forecast_args(model_coins)
+    strategy_args = to_strategy_args(model_coins)
 
     with TaskGroup("etl") as etl:
         etl_1d = (
