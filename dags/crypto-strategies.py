@@ -54,7 +54,7 @@ with DAG(
     task_id="run_crypto-strategies_pod",
     namespace="production",
     name="crypto-strategies",
-    image="390402534126.dkr.ecr.us-east-1.amazonaws.com/crypto-strategies@sha256:d523cbec6e3c39ea55752611f663ba74b4f612040d4d9cdf2ab46863375f392c",
+    image="390402534126.dkr.ecr.us-east-1.amazonaws.com/crypto-strategies@sha256:16faa37e0cc38ad107440776ec3830bcb660027c293b82421a55fb959fff8d65",
     secrets=[env_secret , env_secret_aws , env_telegram],
     is_delete_operator_pod=True,
     execution_timeout=timedelta(minutes=15),
