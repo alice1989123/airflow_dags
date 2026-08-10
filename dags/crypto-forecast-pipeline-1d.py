@@ -168,12 +168,16 @@ with DAG(
             KubernetesPodOperator.partial(
                 task_id="run_crypto_strategies_pod",
                 namespace="gatsbyt",
-                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/crypto-strategies@sha256:530cc9ce0b55d028ea3e788e5d6bb7623cd75d4b56d1a5c1cbc8ea8dee4b7889",
+                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/crypto-strategies@sha256:8f86bf2350eb1d0d09e2ec67b5e6f8f8e0f35d974429bc490f32aeb9dfdfaa83",
                 secrets=[db_secret, env_telegram],
                 is_delete_operator_pod=True,
                 execution_timeout=timedelta(minutes=15),
                 startup_timeout_seconds=900,
-                env_vars={"PYTHONPATH": "/app"},
+                env_vars={
+                    "PYTHONPATH": "/app",
+                    "STRATEGY_FEE_PCT": "0.005",
+                    "STRATEGY_SLIPPAGE_PCT": "0.0005",
+                },
                 get_logs=True,
                 cmds=["/bin/bash", "-c"],
                 in_cluster=True,
@@ -186,8 +190,13 @@ with DAG(
         track_task = KubernetesPodOperator(
             task_id="run_signal_tracker_pod",
             namespace="gatsbyt",
-            image="390402534126.dkr.ecr.us-east-1.amazonaws.com/signal-tracker@sha256:ee2aca888f856afb1f4a36f72ca013fcd09244fe7290cb8bda6d06fea6809618",
+            image="390402534126.dkr.ecr.us-east-1.amazonaws.com/signal-tracker@sha256:d450c6473536cd5e082c2ba2e17251b88ede5411da498238b59d39645613cbda",
             secrets=[db_secret, env_telegram],
+            env_vars={
+                "SIGNAL_HORIZON_BARS": "12",
+                "STRATEGY_FEE_PCT": "0.005",
+                "STRATEGY_SLIPPAGE_PCT": "0.0005",
+            },
             is_delete_operator_pod=True,
             execution_timeout=timedelta(minutes=15),
             startup_timeout_seconds=900,
