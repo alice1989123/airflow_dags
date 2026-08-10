@@ -145,7 +145,7 @@ with DAG(
             KubernetesPodOperator.partial(
                 task_id="run_crypto_strategies_pod",
                 namespace="gatsbyt",
-                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/crypto-strategies@sha256:8f86bf2350eb1d0d09e2ec67b5e6f8f8e0f35d974429bc490f32aeb9dfdfaa83",
+                image="390402534126.dkr.ecr.us-east-1.amazonaws.com/crypto-strategies@sha256:d523cbec6e3c39ea55752611f663ba74b4f612040d4d9cdf2ab46863375f392c",
                 secrets=[db_secret, env_telegram],
                 is_delete_operator_pod=True,
                 execution_timeout=timedelta(minutes=15),
